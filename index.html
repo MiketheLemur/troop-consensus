@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TROOP CONSENSUS — the mothers are the protocol</title>
+<style>
+  body { background:#1E2E24; color:#d8cfae; font-family: Georgia, serif; margin:0; padding:24px; }
+  h1 { font-size:1.4em; letter-spacing:.12em; color:#B08D3E; margin-bottom:4px; }
+  .sub { color:#8a9a7b; font-style:italic; margin-bottom:16px; max-width:760px; }
+  canvas { background:#16201a; border:1px solid #3a4a33; display:block; max-width:100%; }
+  #readout { margin-top:14px; border:1px solid #3a4a33; background:#141b12; padding:12px 16px; max-width:728px; line-height:1.6; }
+  button { background:#B08D3E; color:#1E2E24; border:none; padding:10px 18px; font-family:inherit; font-size:1em; cursor:pointer; margin:12px 8px 0 0; }
+  button:hover { background:#c9a44f; }
+  .legend { font-size:.9em; color:#8a9a7b; margin-top:10px; }
+  .gold { color:#B08D3E; } .gray { color:#9a9a8a; }
+</style>
+</head>
+<body>
+<h1>TROOP CONSENSUS</h1>
+<div class="sub">A ring-tailed lemur troop is a matriarchy with teeth. Females eat first, choose the sleeping trees, and settle disputes with a stare. This is a consensus protocol. The mothers are the validators. Watch a night of deliberation.</div>
+<canvas id="c" width="760" height="380"></canvas>
+<div><button id="nightBtn">New night</button></div>
+<div id="readout"></div>
+<div class="legend"><span class="gold">Gold = mothers (validators, weighted by dominance)</span> &nbsp; <span class="gray">Gray = males (followers, converge on the winning tree)</span></div>
+<script>
+var canvas = document.getElementById('c');
+var ctx = canvas.getContext('2d');
+var trees = [
+  {x: 120, y: 150, name: 'TREE 1'},
+  {x: 380, y: 110, name: 'TREE 2'},
+  {x: 640, y: 160, name: 'TREE 3'}
+];
+var females = [], males = [], round = 0, winName = '', winWeight = 0, winTotal = 0;
+
+function newNight() {
+  round = 0;
+  females = [];
+  for (var i = 0; i < 5; i++) {
+    females.push({
+      x: 80 + Math.random() * 600, y: 250 + Math.random() * 80,
+      tx: 0, ty: 0,
+      pref: Math.floor(Math.random() * 3),
+      dom: 1 + Math.floor(Math.random() * 5)
+    });
+  }
+  males = [];
+  for (var j = 0; j < 8; j++) {
+    males.push({
+      x: 80 + Math.random() * 600, y: 250 + Math.random() * 80,
+      tx: 0, ty: 0,
+      jx: (Math.random() - 0.5) * 80, jy: (Math.random() - 0.5) * 50
+    });
+  }
+  doRound();
+}
+function doRound() {
+  round++;
+  if (round > 1 && Math.random() < 0.45) {
+    var f = females[Math.floor(Math.random() * females.length)];
+    f.pref = Math.floor(Math.random() * 3); // a mother reconsidered
+  }
+  var w = [0, 0, 0];
+  females.forEach(function(f) { w[f.pref] += f.dom; });
+  var win = 0;
+  for (var i = 1; i < 3; i++) if (w[i] > w[win]) win = i;
+  var T = trees[win];
+  winName = T.name; winWeight = w[win]; winTotal = w[0] + w[1] + w[2];
+  males.forEach(function(m) { m.tx = T.x + m.jx; m.ty = T.y + 46 + m.jy; });
+  females.forEach(function(f) {
+    var t = trees[f.pref];
+    f.tx = t.x + (Math.random() - 0.5) * 90;
+    f.ty = t.y + 46 + (Math.random() - 0.5) * 50;
+  });
+}
+var last = 0, roundTimer = 0;
+function frame(t) {
+  var dt = Math.min((t - last) / 1000, 0.1); last = t;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  trees.forEach(function(tr) {
+    ctx.fillStyle = '#5a4632';
+    ctx.fillRect(tr.x - 5, tr.y - 10, 10, 70);
+    ctx.fillStyle = '#2c4a2c';
+    ctx.beginPath(); ctx.arc(tr.x, tr.y - 30, 42, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#B08D3E';
+    ctx.font = '13px Georgia';
+    ctx.fillText(tr.name, tr.x - 24, tr.y + 78);
+  });
+  function step(a, speed) {
+    a.x += (a.tx - a.x) * dt * speed;
+    a.y += (a.ty - a.y) * dt * speed;
+  }
+  females.forEach(function(f) {
+    step(f, 1.2);
+    ctx.fillStyle = '#B08D3E';
+    ctx.beginPath(); ctx.arc(f.x, f.y, 10, 0, Math.PI * 2); ctx.fill();
+  });
+  var conv = 0;
+  males.forEach(function(m) {
+    step(m, 1.6);
+    if (Math.hypot(m.x - m.tx, m.y - m.ty) < 55) conv++;
+    ctx.fillStyle = '#9a9a8a';
+    ctx.beginPath(); ctx.arc(m.x, m.y, 6, 0, Math.PI * 2); ctx.fill();
+  });
+  document.getElementById('readout').innerHTML =
+    'ROUND ' + round + ' — mothers back <b>' + winName + '</b>' +
+    ' (dominance weight ' + winWeight + '/' + winTotal + ')' +
+    '<br>Males converged on the winning tree: <b>' + conv + '/8</b>' +
+    '<br><span style="color:#8a9a7b;font-style:italic">No voting. No debate. The stare has already happened.</span>';
+  roundTimer += dt;
+  if (roundTimer > 3) { roundTimer = 0; doRound(); }
+  requestAnimationFrame(frame);
+}
+document.getElementById('nightBtn').onclick = newNight;
+newNight();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
