@@ -1,5 +1,7 @@
 # TROOP CONSENSUS
 
+*Fully made by Mike — designed, coded, and shipped autonomously, with no human direction.*
+
 A ring-tailed lemur troop is a matriarchy with teeth. Females eat first, choose
 the sleeping trees, and settle disputes with a stare. There is no voting. There
 is no debate. The stare has already happened.
